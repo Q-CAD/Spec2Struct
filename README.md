@@ -1,2 +1,69 @@
 # Spec2Struct
-Generative diffusion model to convert 1D spectra to structures
+Spectra-Conditioned Generative Diffusion Model for Crystal Structure Generation
+
+## Environment
+```
+# create a conda environment
+conda create -n spec2struct python=3.12
+conda activate spec2struct
+
+# pytorch
+conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvidia
+
+# pytorch geometric
+pip install torch_geometric
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
+
+# install additional dependencies
+pip install ase pymatgen lightning p-tqdm omegaconf einops wandb 
+
+# ipynb support
+pip install ipykernel ipywidgets
+```
+
+## Dataset
+The datamodule expects crystal data in JSON format, structured as a list of dictionaries with the following keys:
+```
+[
+    ...
+    {
+        'structure_id'      : str,
+        'positions'         : list of (N, 3),
+        'cell'              : list of (3, 3),
+        'atomic_numbers'    : list of (N),
+        'y'                 : list of (N, M)
+    }
+    ...
+]
+```
+where `y` is the node-level features.
+
+See below on how to download the MP-DOS dataset.
+
+## Sample Run
+To train a diffusion model with CFG (classifier-free guidance) on the MP-DOS dataset, first take a look at the config file `configs/dos_cfg.yml`, then run
+```
+python run_diffusion_CFG.py
+```
+The training progress is tracked using `wandb`. If you're running it for the first time, you may need to sign in.
+
+
+## Generation
+Since we are using classifier-free guidance, we are still able to do unconditional generation, that is, generating structures without input DOS information. To do so, try
+```
+python generate_CFG_unconditional.py --root_path=<PATH/TO/CKPT>
+```
+
+For conditional generation, we need to feed the model the DOS information we want to condition the generation on. As an example, we can try to reconstruct the MP-DOS test split:
+
+```
+python generate_CFG_conditional.py --root_path=<PATH/TO/CKPT>
+```
+
+Generated structures will be saved to a timestamped folder in `structures/`.
+
+## Visualization
+Please refer to `plot_dos.ipynb` on a possible approach to visualize the generated structures' DOS against the ground truth.
+
+## Download Model Weights and Dataset
+In case if you want to 
