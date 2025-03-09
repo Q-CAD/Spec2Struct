@@ -78,7 +78,6 @@ The default directory structure for this repo is:
 Spec2Struct
 ├── configs
 ├── data
-│   ├── mp_20
 │   └── mp_dos
 ├── outputs
 │   ├── dos_cfg
