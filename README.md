@@ -66,4 +66,28 @@ Generated structures will be saved to a timestamped folder in `structures/`.
 Please refer to `plot_dos.ipynb` on a possible approach to visualize the generated structures' DOS against the ground truth.
 
 ## Download Model Weights and Dataset
-In case if you want to 
+Two trained model weights, (1) diffusion model with CFG and (2) DOS forward model, can be download at the following link:
+https://u.pcloud.link/publink/show?code=XZ0kE45ZOuEPUrHzQU5ciR2pXKCkDzNY3F9k
+
+The MP-DOS dataset is available at the following link:
+https://u.pcloud.link/publink/show?code=XZ4kE45ZhFgF7IWysbuKnuUExSsnfLC2n9wy
+
+The default directory structure for this repo is:
+
+```
+Spec2Struct
+├── configs
+├── data
+│   ├── mp_20
+│   └── mp_dos
+├── outputs
+│   ├── dos_cfg
+│   └── dos_forward_model
+├── spec2struct
+│   ├── dataset
+│   ├── diffusion
+│   ├── models
+│   └── utils
+└── structures
+    └── 08032025_160513
+```
