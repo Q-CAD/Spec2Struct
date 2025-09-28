@@ -18,7 +18,7 @@ from pytorch_lightning.callbacks import (
 )
 
 from spec2struct.dataset.datamodule import CrystalDataModule
-from spec2struct.diffusion.diffusion_cfg import CSPDiffusion
+from spec2struct.diffusion.property import CSPProperty
 from spec2struct.utils.utils import log_hyperparameters
 
 def build_callbacks(config: DictConfig, save_dir) -> List[Callback]:
@@ -73,7 +73,7 @@ def run(config: DictConfig):
     data_module = CrystalDataModule(config)
 
     # instantiate model
-    model = CSPDiffusion(**config)
+    model = CSPProperty(**config)
 
     # instantiate the callbacks
     callbacks: List[Callback] = build_callbacks(config, save_dir)
@@ -82,6 +82,7 @@ def run(config: DictConfig):
     if data_module.scaler is not None:
         model.lattice_scaler = data_module.lattice_scaler.copy()
         model.scaler = data_module.scaler.copy()
+
     torch.save(data_module.lattice_scaler, save_dir / 'lattice_scaler.pt')
     torch.save(data_module.scaler, save_dir / 'prop_scaler.pt')
 
@@ -122,7 +123,8 @@ def run(config: DictConfig):
     if wandb_logger is not None:
         wandb_logger.experiment.finish()
 
-conf = OmegaConf.load('configs/perov5_unconditional.yml')
+
+conf = OmegaConf.load('configs/dos_2d_forward.yml')
 print(OmegaConf.to_yaml(conf))
 
 run(conf)

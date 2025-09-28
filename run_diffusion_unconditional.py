@@ -18,7 +18,7 @@ from pytorch_lightning.callbacks import (
 )
 
 from spec2struct.dataset.datamodule import CrystalDataModule
-from spec2struct.diffusion.diffusion_cfg import CSPDiffusion
+from spec2struct.diffusion.diffusion import CSPDiffusion
 from spec2struct.utils.utils import log_hyperparameters
 
 def build_callbacks(config: DictConfig, save_dir) -> List[Callback]:

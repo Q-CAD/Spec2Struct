@@ -13,21 +13,43 @@ from torch_geometric.loader import DataLoader
 from spec2struct.diffusion.diffusion_cfg import CSPDiffusion
 from spec2struct.utils.constants import cdvae_train_num_elements_distribution
 from spec2struct.utils.utils import decode
+from spec2struct.dataset.datamodule import CrystalDataModule, worker_init_fn
+from spec2struct.dataset.dataset import CrystalDataset
 
+# class SampleDataset(Dataset):
+#     def __init__(self, dataset, total_num):
+#         super().__init__()
+#         self.total_num = total_num
+#         self.distribution = cdvae_train_num_elements_distribution[dataset]
+
+#         # sample number of atoms from the training dataset distribution
+#         self.num_atoms = np.random.choice(
+#             len(self.distribution), 
+#             total_num, 
+#             p=self.distribution
+#         )
+#         self.is_carbon = dataset == 'carbon_24'
+
+#     def __len__(self) -> int:
+#         return self.total_num
+
+#     def __getitem__(self, index):
+#         num_atom = self.num_atoms[index]
+#         data = Data(
+#             num_atoms=torch.LongTensor([num_atom]),
+#             num_nodes=num_atom,
+#             y=torch.ones(num_atom, 400) * 10
+#         )
+#         if self.is_carbon:
+#             data.atom_types = torch.LongTensor([6] * num_atom)
+#         return data
 class SampleDataset(Dataset):
-    def __init__(self, dataset, total_num):
+    def __init__(self, num_atoms_list):
         super().__init__()
-        self.total_num = total_num
-        self.distribution = cdvae_train_num_elements_distribution[dataset]
+        self.total_num = len(num_atoms_list)
 
         # sample number of atoms from the training dataset distribution
-        self.num_atoms = np.random.choice(
-            len(self.distribution), 
-            total_num, 
-            p=self.distribution
-        )
-        self.is_carbon = dataset == 'carbon_24'
-
+        self.num_atoms = num_atoms_list
     def __len__(self) -> int:
         return self.total_num
 
@@ -36,10 +58,8 @@ class SampleDataset(Dataset):
         data = Data(
             num_atoms=torch.LongTensor([num_atom]),
             num_nodes=num_atom,
-            y=torch.ones(num_atom, 400) * 10
+            y=torch.zeros(num_atom, 400)
         )
-        if self.is_carbon:
-            data.atom_types = torch.LongTensor([6] * num_atom)
         return data
 
 def diffuse(model, loader, step_lr):
@@ -70,11 +90,6 @@ def diffuse(model, loader, step_lr):
 def main(args):
     root_path = Path(args.root_path)
 
-    now = datetime.now()
-    formatted_time = now.strftime("%d%m%Y_%H%M%S")
-    save_path = Path(args.save_path) / formatted_time
-    save_path.mkdir(exist_ok=True)
-
     # load config
     print("Loading model...")
     config_path = root_path / 'hparams.yaml'
@@ -91,8 +106,22 @@ def main(args):
     model = CSPDiffusion.load_from_checkpoint(ckpt_path, config=config)
     model.to('cuda')
 
-    test_set = SampleDataset('mp_20', args.batch_size * args.num_batches)
+    print("Loading test loader....")
+    if args.batch_size is not None:
+        config.datamodule.batch_size.test = args.batch_size
+
+    data_module = CrystalDataModule(config, scaler_path=str(root_path))
+    data_module.setup(stage="test")
+    test_loader = data_module.test_dataloader()
+
+    num_atoms = []
+    for batch in test_loader:
+        batch_num_atoms = batch.num_atoms.detach().cpu().numpy().tolist()
+        num_atoms.extend(batch_num_atoms)
+
+    test_set = SampleDataset(num_atoms)
     test_loader = DataLoader(test_set, batch_size=args.batch_size)
+
     step_lr = args.step_lr
 
     # diffuse
@@ -112,9 +141,14 @@ def main(args):
         'lattices': lattices
     }
 
+    # decode
+    now = datetime.now()
+    formatted_time = now.strftime("%d%m%Y_%H%M%S")
+    save_path = Path(args.save_path) / formatted_time
+    save_path.mkdir(exist_ok=True)
+
     torch.save(data, save_path / 'unconditional.pt')
 
-    # decode
     print("Decoding to ase.Atoms objects...")
     decode(data, save_path)
 

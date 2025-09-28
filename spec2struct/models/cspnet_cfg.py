@@ -224,8 +224,7 @@ class CSPNet(nn.Module):
         if self.pred_node_level:
             self.node_out = nn.Linear(hidden_dim, pred_dim, bias=False)
 
-        if self.cfg:
-            self.y_projection = nn.Linear(self.pred_dim, self.hidden_dim)
+        self.y_projection = nn.Linear(self.pred_dim, self.hidden_dim)
 
     def select_symmetric_edges(self, tensor, mask, reorder_idx, inverse_neg):
         # Mask out counter-edges

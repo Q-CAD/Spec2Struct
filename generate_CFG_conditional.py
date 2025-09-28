@@ -37,11 +37,17 @@ def diffuse(
         count += 1
         
         for i in range(n_candidates):
-            outputs, _ = model.sample(
+            # outputs, _ = model.sample(
+            #     batch,
+            #     step_lr=step_lr,
+            #     diff_ratio=diff_ratio,
+            #     conditional=True
+            # )
+            outputs, stack = model.cfg_sample(
                 batch,
                 step_lr=step_lr,
                 diff_ratio=diff_ratio,
-                conditional=True
+                w=0.2
             )
 
             outputs = {
@@ -69,7 +75,10 @@ def main(args):
 
     now = datetime.now()
     formatted_time = now.strftime("%d%m%Y_%H%M%S")
-    save_path = Path(args.save_path) / formatted_time
+    if args.file_name is None:
+        save_path = Path(args.save_path) / formatted_time
+    else:
+        save_path = Path(args.save_path) / (f"{formatted_time}_{args.file_name}")
 
     # load config
     print("Loading model...")
@@ -145,6 +154,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root_path', type=str, required=True, help="Path to the folder containing model.ckpt, hparams.yaml, and scaler.pt")
     parser.add_argument('--save_path', type=str, default="structures/", help="Path to save the generated structures")
+    parser.add_argument('--file_name', type=str, default=None, help="File name to save the generated structure")
     parser.add_argument('--batch_size', type=int, default=5)
     parser.add_argument('--step_lr', type=float, default=5e-6)
     parser.add_argument('--n_candidates', type=float, default=1, help="Number of candidate structures to generate per given sample in the test set")

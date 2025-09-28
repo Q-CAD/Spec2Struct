@@ -2,11 +2,13 @@ from typing import List
 
 import os
 import wandb
+from glob import glob
 from pathlib import Path
 from datetime import datetime
 from omegaconf import DictConfig, OmegaConf
 
 import torch
+import torch.nn.init as init
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, seed_everything
@@ -73,7 +75,21 @@ def run(config: DictConfig):
     data_module = CrystalDataModule(config)
 
     # instantiate model
-    model = CSPDiffusion(**config)
+    # load pretrained model
+    pretrained_model_path = Path(config.pretrain_dir)
+    pretrained_config_path = pretrained_model_path / "hparams.yaml"
+    pretrained_config = OmegaConf.load(pretrained_config_path)
+
+    # load checkpoint
+    ckpt_path = glob(str(pretrained_model_path / '*.ckpt'))
+    if len(ckpt_path) == 0:
+        raise ValueError("No checkpoint file found.")
+    elif len(ckpt_path) > 1:
+        raise ValueError("Multiple checkpoint files found.")
+    ckpt_path = ckpt_path[0]
+
+    model = CSPDiffusion.load_from_checkpoint(ckpt_path, config=pretrained_config)
+    # model = CSPDiffusion(**config)
 
     # instantiate the callbacks
     callbacks: List[Callback] = build_callbacks(config, save_dir)
@@ -122,7 +138,7 @@ def run(config: DictConfig):
     if wandb_logger is not None:
         wandb_logger.experiment.finish()
 
-conf = OmegaConf.load('configs/perov5_unconditional.yml')
+conf = OmegaConf.load('configs/dos_cfg_2d_ft_truncated.yml')
 print(OmegaConf.to_yaml(conf))
 
 run(conf)

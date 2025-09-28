@@ -55,8 +55,7 @@ class CrystalDataset(Dataset):
             prop_list=[self.prop],
             tolerance=self.tolerance,
         )
-        if os.path.isfile(self.save_path):
-            torch.save(cached_data, self.save_path)
+        torch.save(cached_data, self.save_path)
         self.cached_data = cached_data
     
     def __len__(self):
