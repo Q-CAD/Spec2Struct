@@ -275,20 +275,6 @@ calibrated with. The two `lattice_scaler.pt` / `prop_scaler.pt` pairs are
 byte-identical across the run directories by design — both fine-tunes reuse the
 pretrained MP-DOS scalers rather than refitting.
 
-Checksums (`sha256sums.txt` ships with the download):
-
-```
-2c0b7439cb0e32c32349f7e3716fce0353204044c48e6a0a10fe21480c5b72bb  260714_121340_dmx2_forward_ft/epoch=89-step=1440.ckpt
-95809aae2ba11a88f9163bfe95f18c6e1ba8c6ea6c7dcbeafc2933ca5b7eac1e  260714_121340_dmx2_forward_ft/hparams.yaml
-0ec4807c2041ac3e583b67f7649369c57d3b94552a51358d2a710072030ea401  260714_121340_dmx2_forward_ft/lattice_scaler.pt
-ae446b295e94a4f92011dedaad2b63d4d7ab4e489d0b723df679e7a6727a10b0  260714_121340_dmx2_forward_ft/prop_scaler.pt
-06f957f3466bf75ceda97ab24ee9c6a8bed9bcd6ccb24beacba8d4967698c683  260714_125010_dmx2_cfg_ft/epoch=789-step=12640.ckpt
-5123bc5e41bc46db0bc60966cd51bf3e63d0f5f440f6842094e1431ea548931d  260714_125010_dmx2_cfg_ft/hparams.yaml
-0ec4807c2041ac3e583b67f7649369c57d3b94552a51358d2a710072030ea401  260714_125010_dmx2_cfg_ft/lattice_scaler.pt
-ae446b295e94a4f92011dedaad2b63d4d7ab4e489d0b723df679e7a6727a10b0  260714_125010_dmx2_cfg_ft/prop_scaler.pt
-```
-
-Verify with `sha256sum -c sha256sums.txt` from inside `outputs/`.
 
 These paths are the **defaults** in the eval scripts. If you retrain into a new
 timestamped directory instead, pass `--run_dir` / `--judge_dir` / `--ckpt`, or
