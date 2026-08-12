@@ -1,0 +1,17 @@
+{
+  "comment": "DMX_DOS_new exclusion list from audit 2026-07-13 (audit_dmx2.py). Categories: unconverged_electronic = NELM saturated (verified: 60/60 and 40/40 SCF steps). No non-finite y, no exact duplicates within DMX_DOS_new.",
+  "unconverged_electronic": [
+    "cose2_Fe_adatom",
+    "cose2_Fe_doped",
+    "cose2_Ni_doped",
+    "cose2_Vacancy-Anion-09B"
+  ],
+  "non_finite_y": [],
+  "exact_duplicates": [],
+  "exclude_all": [
+    "cose2_Fe_adatom",
+    "cose2_Fe_doped",
+    "cose2_Ni_doped",
+    "cose2_Vacancy-Anion-09B"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "pred_blob": "eval/preds/dmx2_val_k5_w5.pt",
+  "N": 62,
+  "K": 5,
+  "w": 5.0,
+  "unconditional": false,
+  "mae_full_meank": 0.18961383168139173,
+  "mae_full_bestofk": 0.1482881339579244,
+  "mae_nearef_meank": 0.2406091956267521,
+  "mae_nearef_bestofk": 0.2001303182074136,
+  "valid_rate": 0.13548387096774195,
+  "struct_valid_rate": 0.8548387096774194,
+  "comp_valid_rate": 0.1870967741935484,
+  "comp_exact_match_rate": 0.4645161290322581,
+  "elemset_match_rate": 0.47096774193548385
+}

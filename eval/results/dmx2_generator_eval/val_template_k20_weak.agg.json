@@ -1,0 +1,16 @@
+{
+  "pred_blob": "eval/preds/dmx2_val_template_k20_weak.pt",
+  "N": 11,
+  "K": 20,
+  "w": 1.0,
+  "unconditional": false,
+  "mae_full_meank": 0.17653282182300736,
+  "mae_full_bestofk": 0.17018922874899986,
+  "mae_nearef_meank": 0.25817213300970465,
+  "mae_nearef_bestofk": 0.2430989134108339,
+  "valid_rate": 0.045454545454545456,
+  "struct_valid_rate": 0.5818181818181818,
+  "comp_valid_rate": 0.045454545454545456,
+  "comp_exact_match_rate": 0.6181818181818182,
+  "elemset_match_rate": 0.6181818181818182
+}

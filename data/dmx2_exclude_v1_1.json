@@ -1,0 +1,58 @@
+{
+ "comment": "DMX_DOS_new exclusion list from audit 2026-07-13 (audit_dmx2.py). Categories: unconverged_electronic = NELM saturated (verified: 60/60 and 40/40 SCF steps). No non-finite y, no exact duplicates within DMX_DOS_new. | +12 leak_exclusions (identical-geometry twin pairs, energy-adjudicated; see the table in make_dmx2_split_v1_1.py)",
+ "unconverged_electronic": [
+  "cose2_Fe_adatom",
+  "cose2_Fe_doped",
+  "cose2_Ni_doped",
+  "cose2_Vacancy-Anion-09B"
+ ],
+ "non_finite_y": [],
+ "exact_duplicates": [],
+ "exclude_all": [
+  "cose2_Fe_adatom",
+  "cose2_Fe_doped",
+  "cose2_Ni_doped",
+  "cose2_Vacancy-Anion-09B",
+  "mos2-A_Doped-Na",
+  "tise2_Anti-Anion",
+  "ws2-B_Anti-Metal",
+  "ws2-B_Doped-O",
+  "ws2-B_V48_V44",
+  "ws2-c_Anti-Anion",
+  "ws2-c_Cr_doped",
+  "ws2-c_Mo_doped",
+  "ws2-c_O_doped",
+  "ws2-c_Re_doped",
+  "ws2-c_Vacancy-Anion",
+  "ws2-c_Vacancy-Metal"
+ ],
+ "derived_from": "data/dmx2_exclude.json",
+ "leak_exclusions": [
+  "mos2-A_Doped-Na",
+  "tise2_Anti-Anion",
+  "ws2-B_Anti-Metal",
+  "ws2-B_Doped-O",
+  "ws2-B_V48_V44",
+  "ws2-c_Anti-Anion",
+  "ws2-c_Cr_doped",
+  "ws2-c_Mo_doped",
+  "ws2-c_O_doped",
+  "ws2-c_Re_doped",
+  "ws2-c_Vacancy-Anion",
+  "ws2-c_Vacancy-Metal"
+ ],
+ "leak_exclusion_reasons": {
+  "mos2-A_Doped-Na": "kept mos2-A_Adatom-Na; mislabeled (Na1Mo16S32 = added atom)",
+  "tise2_Anti-Anion": "kept tise2_Adatom-K; mislabeled (K1Ti16Se32 = K adatom)",
+  "ws2-B_Doped-O": "kept ws2-A_Doped-O; default: train member out (identical state)",
+  "ws2-c_Anti-Anion": "kept ws2-B_Anti-Anion; default: ws2-c out (identical state)",
+  "ws2-c_O_doped": "kept ws2-B_O_doped; default: ws2-c out (identical state)",
+  "ws2-c_Vacancy-Metal": "kept ws2-B_Vacancy-Metal; default: ws2-c out (identical state)",
+  "ws2-B_Anti-Metal": "kept ws2-c_Anti-Metal; energy: -445.34512 vs -445.43282 eV, dE=1.83 meV/at -> keep ws2-c (val, FM-like)",
+  "ws2-B_V48_V44": "kept ws2-c_V48_V44; energy: -427.50072 vs -427.58687 eV, dE=1.87 meV/at -> keep ws2-c (test, FM-like)",
+  "ws2-c_Re_doped": "kept ws2-B_Re_doped; tie (dE=0.42 meV/at < 1) -> default train member out; keeps test (nonmagnetic)",
+  "ws2-c_Cr_doped": "kept ws2-B_Cr_doped; tie (dE=0.92 meV/at < 1) -> default ws2-c out; agrees with energy (B lower)",
+  "ws2-c_Mo_doped": "kept ws2-B_Mo_doped; tie (dE=0.36 meV/at < 1) -> default ws2-c out (energy alone would keep c)",
+  "ws2-c_Vacancy-Anion": "kept ws2-B_Vacancy-Anion; tie (dE=0.46 meV/at < 1) -> default ws2-c out; agrees with energy (B lower)"
+ }
+}

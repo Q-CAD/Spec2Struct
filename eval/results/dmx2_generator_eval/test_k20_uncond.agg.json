@@ -1,0 +1,16 @@
+{
+  "pred_blob": "eval/preds/dmx2_test_k20_uncond.pt",
+  "N": 62,
+  "K": 20,
+  "w": 1.0,
+  "unconditional": true,
+  "mae_full_meank": 0.26906503371637186,
+  "mae_full_bestofk": 0.22711397279511886,
+  "mae_nearef_meank": 0.32142518379931984,
+  "mae_nearef_bestofk": 0.25503865159999173,
+  "valid_rate": 0.5064516129032258,
+  "struct_valid_rate": 0.8717741935483871,
+  "comp_valid_rate": 0.5548387096774193,
+  "comp_exact_match_rate": 0.0,
+  "elemset_match_rate": 0.0024193548387096775
+}

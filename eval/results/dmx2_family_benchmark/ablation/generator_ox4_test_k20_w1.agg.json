@@ -1,0 +1,16 @@
+{
+  "pred_blob": "eval/preds/ablation_ox4_test_k20_w1.pt",
+  "N": 62,
+  "K": 20,
+  "w": 1.0,
+  "unconditional": false,
+  "mae_full_meank": 0.16238808811157893,
+  "mae_full_bestofk": 0.14007854774734788,
+  "mae_nearef_meank": 0.2171209924757376,
+  "mae_nearef_bestofk": 0.18742828832176747,
+  "valid_rate": 0.19032258064516128,
+  "struct_valid_rate": 0.8056451612903226,
+  "comp_valid_rate": 0.307258064516129,
+  "comp_exact_match_rate": 0.657258064516129,
+  "elemset_match_rate": 0.6887096774193548
+}
