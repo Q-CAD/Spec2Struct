@@ -15,9 +15,12 @@ from dosmatgen.utils.constants import cdvae_train_num_elements_distribution
 from dosmatgen.utils.utils import decode
 
 class SampleDataset(Dataset):
-    def __init__(self, dataset, total_num):
+    def __init__(self, dataset, total_num, pred_dim=400):
         super().__init__()
         self.total_num = total_num
+        # width of the DOS condition slot; taken from the model config so the
+        # placeholder matches the model (400 total-only, 800 for [total || m])
+        self.pred_dim = pred_dim
         self.distribution = cdvae_train_num_elements_distribution[dataset]
 
         # sample number of atoms from the training dataset distribution
@@ -36,7 +39,7 @@ class SampleDataset(Dataset):
         data = Data(
             num_atoms=torch.LongTensor([num_atom]),
             num_nodes=num_atom,
-            y=torch.ones(num_atom, 400) * 10
+            y=torch.ones(num_atom, self.pred_dim) * 10
         )
         if self.is_carbon:
             data.atom_types = torch.LongTensor([6] * num_atom)
@@ -91,7 +94,8 @@ def main(args):
     model = CSPDiffusion.load_from_checkpoint(ckpt_path, config=config, weights_only=False)
     model.to('cuda')
 
-    test_set = SampleDataset('mp_20', args.batch_size * args.num_batches)
+    test_set = SampleDataset('mp_20', args.batch_size * args.num_batches,
+                             pred_dim=config.diffusion.model.pred_dim)
     test_loader = DataLoader(test_set, batch_size=args.batch_size)
     step_lr = args.step_lr
 

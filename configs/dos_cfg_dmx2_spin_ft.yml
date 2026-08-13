@@ -1,0 +1,135 @@
+run_name: dmx2_cfg_spin_ft
+save_dir: outputs
+# Released EDOS 400-d CFG generator to warm-start from (section 3, Pretrained
+# checkpoints). Point this at the run directory you downloaded. run_diffusion_CFG_finetune_spin.py
+# grafts its DOS projection into the total pathway and zero-initialises the m pathway,
+# and rebuilds prop_scaler as [released total stats(400) || dataset m stats(400)].
+# The released lattice_scaler is reused unchanged.
+pretrain_dir: outputs/260714_125010_dmx2_cfg_ft
+
+train:
+  deterministic: True
+  random_seed: 2024
+  trainer:
+    precision: 32
+    max_epochs: 1000
+    accumulate_grad_batches: 1
+    num_sanity_val_steps: 2
+    gradient_clip_val: 0.5
+    gradient_clip_algorithm: value
+    profiler: simple
+
+  early_stopping:
+    patience: 100000
+    verbose: False
+
+  model_checkpoints:
+    save_top_k: 1
+    verbose: False
+    save_last: True   # resumability
+
+logging:
+  val_check_interval: 5
+
+  wandb:
+    project: spec2struct
+    entity: null
+    log_model: True
+    mode: offline
+
+  wandb_watch:
+    log: all
+    log_freq: 500
+
+  lr_monitor:
+    logging_interval: step
+    log_momentum: False
+
+diffusion:
+  time_dim: 256
+  latent_dim: 0
+  cost_type: 20.
+  cost_coord: 1.
+  cost_lattice: 1.
+  timesteps: 1000
+
+  model:
+    hidden_dim: 512
+    num_layers: 6
+    max_atoms: 100
+    act_fn: 'silu'
+    dis_emb: sin
+    num_freqs: 128
+    edge_style: fc
+    cutoff: 7.0
+    max_neighbors: 20
+    ln: True
+    ip: True
+    smooth: True
+    pred_type: True
+    pred_graph_level: False
+    pred_node_level: True
+    pred_dim: 800
+    # classifier-free guidance settings
+    cfg: True
+    cfg_prob: 0.2
+    # Split the DOS condition into a total pathway and an m pathway. The m pathway
+    # is zero-initialised by the warm start, so the model equals the released
+    # total-DOS generator at step 0 while the m pathway still receives gradient.
+    mag_zero_mixin: True
+
+  beta_scheduler:
+    scheduler_mode: cosine
+
+  sigma_scheduler:
+    sigma_begin: 0.005
+    sigma_end: 0.5
+
+optim:
+  optimizer: Adam
+  params:
+    lr: 0.0001          # reduced fine-tune LR (pretrain used 1e-3)
+    betas: [0.9, 0.999]
+    eps: 1e-8
+    weight_decay: 0
+  new_pathway_lr: 0.001  # higher LR for the zero-initialised m pathway (y_proj_m)
+  lr_scheduler:
+    use_lr_scheduler: True
+    scheduler: ReduceLROnPlateau
+    monitor_metric: val_loss
+    monitor_metric_mode: min
+    params:
+      factor: 0.6
+      patience: 30
+      min_lr: 1e-5
+
+property: y
+niggli: False
+primitive: False
+graph_method: crystalnn
+preprocess_workers: 128
+lattice_scale_method: scale_length
+tolerance: 0.1
+
+datamodule:
+  datasets:
+    train:
+      name: DMX2 spin-DOS train
+      dataset_path: data/dmx2_dos_spin/train.json
+      targets_path: null
+      save_path: data/dmx2_dos_spin/train_ori.pt
+    val:
+      name: DMX2 spin-DOS val
+      dataset_path: data/dmx2_dos_spin/val.json
+      targets_path: null
+      save_path: data/dmx2_dos_spin/val_ori.pt
+    test:
+      name: DMX2 spin-DOS test
+      dataset_path: data/dmx2_dos_spin/test.json
+      targets_path: null
+      save_path: data/dmx2_dos_spin/test_ori.pt
+
+  batch_size:
+    train: 32
+    val: 16
+    test: 16

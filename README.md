@@ -25,6 +25,13 @@ Dataset: 620 spin-polarized HSE06 static DOS calculations (44–49 atoms/cell).
 **The data itself is not distributed with this repo** — see below for the
 layout the pipeline expects.
 
+> **This branch adds a spin-resolved option.** Sections 1–7 describe the
+> released total-DOS models and apply unchanged. Section 8 covers the
+> optional `[total(400) || m(400)]` extension: spin-resolved targets, an
+> 800-d conditioning adapter for the generator, and an 800-d split output
+> head for the forward model. With those options off, everything behaves
+> exactly as the released total-DOS code.
+
 ---
 
 ## 1. Environment
@@ -448,6 +455,8 @@ Headline numbers (test split, states/eV/atom):
 ├── build_dmx_dos_json.py       step 3: vaspruns -> train/val/test JSON
 ├── run_forward_finetune.py     step 4: forward model fine-tune
 ├── run_diffusion_CFG_finetune.py  step 4: generator fine-tune
+├── run_forward_finetune_spin.py   section 8: 800-d split-head fine-tune
+├── run_diffusion_CFG_finetune_spin.py  section 8: 800-d generator fine-tune
 ├── run_diffusion_CFG.py        upstream: MP-DOS pretraining from scratch
 ├── generate_CFG_{conditional,unconditional}.py   upstream generation entry points
 ├── gpu_smoke_b200.py           Blackwell smoke test
@@ -461,6 +470,142 @@ Headline numbers (test split, states/eV/atom):
 └── eval/                       evaluation scripts (see eval/README.md)
     └── results/RESULTS.md      all results, organised by experiment
 ```
+
+## 8. Spin-resolved (800-d) extension
+
+An optional extension that carries the spin asymmetry alongside the total DOS.
+
+### What the targets look like
+
+Per atom, `y = [total(400) || m(400)]`:
+
+- `total = up + down` — identical to the 400-d targets used everywhere above
+- `m = up - down` — the spin asymmetry, zero for a non-spin-polarised calculation
+
+Both halves share the same energy grid, Fermi reference and interpolation as the
+released build: 400 bins on `[-10, +10]` eV in `E - E_F`, linear interpolation, zero
+fill outside the source range. The first 400 columns of a spin-split build are
+therefore identical to a default build of the same structures.
+
+### What this branch adds
+
+The model code for both options already ships in the released branch, default-off:
+
+- **`mag_zero_mixin`** (generator, `dosmatgen/models/cspnet_cfg.py`) splits the DOS
+  condition into a total pathway and an m pathway and adds their projections. The m
+  pathway is zero-initialised, so at step 0 the model is exactly the released
+  total-DOS generator, while the m pathway still receives gradient and can lift off
+  on its own.
+- **`node_out_split`** (forward model, `dosmatgen/models/cspnet.py`) splits the
+  per-atom output head into a total half and an m half. The m half is
+  zero-initialised, so the predicted m is zero at step 0 and the backbone is
+  unchanged.
+
+What this branch adds on top of that is the parts that were missing: the
+spin-resolved target build, the two training entry points that perform the
+warm-start surgery, and the configs that switch the options on. That is why the diff
+against the released branch is small.
+
+The generator model also contains an alternative tanh-gated conditioning variant
+(`mag_gate`); the configs here use `mag_zero_mixin`.
+
+### Step 1 — build spin-resolved targets
+
+```bash
+python build_dmx_dos_json.py --dmx_dir $DMX --spin_split
+```
+
+Writes `data/dmx2_dos_spin/{train,val,test}.json` plus `build_meta.json`, using the
+same frozen split and exclusion list as the total-only build (override with
+`--split_file` / `--exclude_file` / `--out_dir`). Every `y` row is 800 wide.
+
+### Step 2 — train the generator
+
+```bash
+python run_diffusion_CFG_finetune_spin.py --config configs/dos_cfg_dmx2_spin_ft.yml
+```
+
+### Step 3 — train the forward model
+
+```bash
+python run_forward_finetune_spin.py --config configs/dos_forward_dmx2_spin_ft.yml
+```
+
+Both warm-start from the **released EDOS checkpoints** — the same run directories
+described under *Pretrained checkpoints* in section 3. Set `pretrain_dir` in the
+config to the run directory you downloaded; each entry point expects that directory
+to hold exactly one `.ckpt` alongside `prop_scaler.pt` and `lattice_scaler.pt`, which
+is the layout the released checkpoints ship in.
+
+Both scripts rebuild the property scaler as `[released total stats || dataset m
+stats]`, so the grafted total pathway keeps the normalisation it was trained with,
+and both give the freshly initialised m pathway a higher learning rate than the
+inherited weights (`optim.new_pathway_lr`). Checkpoints land in
+`outputs/<YYMMDD_HHMMSS>_<run_name>/` as usual.
+
+### Step 4 — forward inference
+
+```python
+from glob import glob
+import torch
+from omegaconf import OmegaConf
+from dosmatgen.diffusion.property import CSPProperty
+
+run_dir = "outputs/<your_spin_forward_run>"
+cfg = OmegaConf.load(f"{run_dir}/hparams.yaml")
+model = CSPProperty(**cfg)
+sd = torch.load(glob(f"{run_dir}/*.ckpt")[0], map_location="cpu",
+                weights_only=False)["state_dict"]
+model.load_state_dict(sd, strict=True)
+model.eval()
+
+scaler = torch.load(f"{run_dir}/prop_scaler.pt", map_location="cpu",
+                    weights_only=False)
+pred_node, _ = model.infer(batch)              # [n_atoms, 800], scaled
+pred = scaler.inverse_transform(pred_node)     # physical units
+total, m = pred[:, :400], pred[:, 400:]
+```
+
+`batch` is a PyG batch from `CrystalDataModule`, exactly as for the 400-d model.
+
+### No checkpoints are published for this branch
+
+The released EDOS checkpoints are 400-d. There are no 800-d checkpoints to download —
+train them with the configs above.
+
+### Compatibility with the total-DOS code
+
+`mag_zero_mixin` and `node_out_split` default to off. With them off, the model classes
+construct exactly as in the released branch and the released configs load and train
+unchanged; `build_dmx_dos_json.py` without `--spin_split` produces the same 400-d
+targets as before.
+
+What works at 800-d:
+
+- **training** — both entry points above
+- **forward inference** — as in step 4; the prediction is `[n_atoms, 800]`
+- **conditional generation** — `generate_CFG_conditional.py` runs against an 800-d
+  generator run directory and writes structures. It reads the condition width from
+  the data and the model, so it needs no flag for this
+
+What does not:
+
+- the evaluation scripts under `eval/` assume a 400-d energy grid and have not been
+  extended. Against an 800-d model they fail with a NumPy `IndexError` raised by a
+  400-length window mask rather than returning wrong numbers, but the message does
+  not name the cause. Run them against 400-d models.
+
+`generate_CFG_unconditional.py` fills the DOS condition slot with an arbitrary
+constant placeholder rather than a real spectrum; it now sizes that placeholder from
+`pred_dim`, so at 800-d it spans both halves. Nothing should be read into its value,
+and 400-d behaviour is unchanged.
+
+### A note on the m channel
+
+The spin-up/spin-down assignment in a DFT calculation is an arbitrary global
+convention rather than a physical orientation, and in our experiments conditioning the
+generator on the signed m channel did not improve round-trip fidelity over the
+total-only baseline, so the m channel should be treated as experimental.
 
 ## Acknowledgements and citation
 

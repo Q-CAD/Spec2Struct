@@ -7,13 +7,23 @@ recipe (Spec2Struct/structure_id.ipynb) exactly:
   positions/cell/atomic_numbers from ASE atoms of structures[-1] (Cartesian)
   structure_id = parent folder name
 
-y = up + down, shape [N, 400] -> --out_dir (default data/dmx2_dos/). The split
-is read from --split_file (default splits/dmx2_v1.json, frozen; see
-make_dmx2_split.py) and exclusions from --exclude_file
-(default data/dmx2_exclude.json). Never re-randomizes: the build fails loudly if
-the parsed folder set does not match the split id set exactly.
+Two target layouts, selected with --spin_split:
+
+  default        y = up + down, shape [N, 400]
+  --spin_split   y = [total(400) || m(400)], shape [N, 800], m = up - down
+
+Both halves use the same energy grid, Fermi reference and interpolation, so the
+first 400 columns of a spin-split build are identical to a default build of the
+same structures.
+
+Output goes to --out_dir (default data/dmx2_dos, or data/dmx2_dos_spin with
+--spin_split). The split is read from --split_file (default splits/dmx2_v1.json,
+frozen; see make_dmx2_split.py) and exclusions from --exclude_file (default
+data/dmx2_exclude.json). Never re-randomizes: the build fails loudly if the parsed
+folder set does not match the split id set exactly.
 
   python build_dmx_dos_json.py --dmx_dir /path/to/DMX_DOS_new
+  python build_dmx_dos_json.py --dmx_dir /path/to/DMX_DOS_new --spin_split
 """
 import os
 import json
@@ -27,12 +37,13 @@ from scipy import interpolate
 warnings.filterwarnings("ignore")
 
 DOS_LENGTH, EMIN, EMAX = 400, -10, 10
-DEFAULT_OUT_DIR = "data/dmx2_dos"  # repo-relative, same resolution as the configs
+DEFAULT_OUT_DIR = "data/dmx2_dos"            # repo-relative, as the configs resolve it
+DEFAULT_OUT_DIR_SPIN = "data/dmx2_dos_spin"  # default for --spin_split builds
 DEFAULT_SPLIT_FILE = "splits/dmx2_v1.json"
 DEFAULT_EXCLUDE_FILE = "data/dmx2_exclude.json"
 
 
-def build_one(folder, dmx_dir):
+def build_one(folder, dmx_dir, spin_split=False):
     from pymatgen.io.vasp import Vasprun
     from pymatgen.io.ase import AseAtomsAdaptor
     from pymatgen.electronic_structure.core import Spin
@@ -67,7 +78,12 @@ def build_one(folder, dmx_dir):
                 out[i, :] = f(xnew)
             return out
 
-        y = interp_rows(total)                            # [N, 400]
+        if spin_split:
+            # [total || m]: the same per-atom curves, with the spin asymmetry
+            # m = up - down appended on the identical energy grid.
+            y = np.concatenate([interp_rows(total), interp_rows(up - dn)], axis=1)
+        else:
+            y = interp_rows(total)                        # [N, 400]
 
         atoms = AseAtomsAdaptor.get_atoms(vr.structures[-1])
         rec = {
@@ -94,15 +110,23 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--dmx_dir", required=True,
                     help="raw data root: one <host>_<defect>/vasprun.xml per structure")
-    ap.add_argument("--out_dir", default=DEFAULT_OUT_DIR,
-                    help="where train/val/test.json + build_meta.json are written")
+    ap.add_argument("--spin_split", action="store_true",
+                    help="build [total(400) || m(400)] targets (m = up - down) "
+                         "instead of total-only 400-d targets")
+    ap.add_argument("--out_dir", default=None,
+                    help=f"where train/val/test.json + build_meta.json are written "
+                         f"(default {DEFAULT_OUT_DIR}, or {DEFAULT_OUT_DIR_SPIN} "
+                         f"with --spin_split)")
     ap.add_argument("--split_file", default=DEFAULT_SPLIT_FILE,
                     help="frozen split id lists (splits/dmx2_v1.json or dmx2_v1_1.json)")
     ap.add_argument("--exclude_file", default=DEFAULT_EXCLUDE_FILE,
                     help="JSON with an 'exclude_all' list of structure ids to skip")
     args = ap.parse_args()
-    out_dir = args.out_dir
-    print(f"{args.dmx_dir} -> {out_dir} (split {args.split_file})")
+    out_dir = args.out_dir or (DEFAULT_OUT_DIR_SPIN if args.spin_split else DEFAULT_OUT_DIR)
+    width = 2 * DOS_LENGTH if args.spin_split else DOS_LENGTH
+    layout = "[total || m]" if args.spin_split else "total"
+    print(f"{args.dmx_dir} -> {out_dir} (split {args.split_file}) "
+          f"| target {layout}, width {width}")
 
     with open(args.exclude_file) as f:
         excluded = set(json.load(f)["exclude_all"])
@@ -118,7 +142,8 @@ def main():
     print(f"parsing with {nproc} workers ...")
     recs, metas, errs = [], [], []
     with ProcessPoolExecutor(max_workers=nproc) as ex:
-        futs = {ex.submit(build_one, f, args.dmx_dir): f for f in folders}
+        futs = {ex.submit(build_one, f, args.dmx_dir, args.spin_split): f
+                for f in folders}
         for k, fut in enumerate(as_completed(futs)):
             rec, meta, err = fut.result()
             if err:
