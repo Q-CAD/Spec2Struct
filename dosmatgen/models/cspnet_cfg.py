@@ -251,12 +251,11 @@ class CSPNet(nn.Module):
                 self.last_total_norm = None
                 self.last_gm_norm = None
             elif self.mag_zero_mixin:
-                # Zero-init mix-in (port of the verifier's zero-init m head): same
-                # split pathways as mag_gate but NO scalar gate. y_proj_m is meant to
-                # be zero-initialized by the warm-start (weight AND bias = 0), so the
-                # model is EXACTLY the pretrained total-DOS model at init — yet unlike
-                # tanh(m_gate)=0, dL/dW_m != 0 from step 0, so the m channel
-                # self-releases without any warmup forcing.
+                # Zero-initialized split projection: the same split pathways as
+                # mag_gate but with no scalar gate. y_proj_m is zero-initialized by
+                # the warm start (weight AND bias = 0), so the model is exactly the
+                # pretrained total-DOS model at init. Unlike a tanh gate held at 0,
+                # dL/dW_m != 0 from step 0, so the m pathway can lift off on its own.
                 assert self.pred_dim % 2 == 0, "mag_zero_mixin needs an even pred_dim ([total||m])"
                 half = self.pred_dim // 2
                 self.y_proj_total = nn.Linear(half, self.hidden_dim)

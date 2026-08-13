@@ -195,8 +195,8 @@ class CSPDiffusion(BaseModule):
             prog_bar=True
         )
 
-        # watch the magnetization gate open during fine-tuning (gated-C only);
-        # gate_value() reports the effective g (forced during warmup, else learned).
+        # Track the magnetization gate during fine-tuning (tanh-gated variant only);
+        # gate_value() reports the effective gate g.
         # m_contrib_ratio = ||g*y_proj_m(y_m)|| / ||y_proj_total(y_total)|| shows how
         # much the m pathway actually contributes relative to the total pathway.
         if hasattr(self.decoder, "m_gate"):

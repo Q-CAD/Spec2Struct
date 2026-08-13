@@ -137,7 +137,7 @@ def main(args):
 
             start_idx = end_idx
 
-    save_path.mkdir(exist_ok=True)
+    save_path.mkdir(parents=True, exist_ok=True)
     for k, v in atoms_list.items():
         ase.io.write(str(save_path / f"{k}.cif"), v)
 
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_path', type=str, default="structures/", help="Path to save the generated structures")
     parser.add_argument('--batch_size', type=int, default=5)
     parser.add_argument('--step_lr', type=float, default=5e-6)
-    parser.add_argument('--n_candidates', type=float, default=1, help="Number of candidate structures to generate per given sample in the test set")
+    parser.add_argument('--n_candidates', type=int, default=1, help="Number of candidate structures to generate per given sample in the test set")
     parser.add_argument('--diff_ratio', type=float, default=0.5, help="timestep at which denoising starts; (0, 1]")
     parser.add_argument('--w', type=float, default=1.0, help="CFG guidance weight; higher = stronger conditioning")
     args = parser.parse_args()
